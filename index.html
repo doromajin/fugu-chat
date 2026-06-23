@@ -1833,7 +1833,14 @@
     const messages = document.getElementById('messages');
     const historyList = document.getElementById('history-list');
     const memList = document.getElementById('memory-list');
-    const isScrollable = messages.contains(e.target) || historyList.contains(e.target) || (memList && memList.contains(e.target));
+    
+    // スクロールを許可する条件に「.sheet (設定画面など)」を追加
+    const isScrollable = 
+      (messages && messages.contains(e.target)) || 
+      (historyList && historyList.contains(e.target)) || 
+      (memList && memList.contains(e.target)) ||
+      (e.target.closest('.sheet') !== null); // ←コレが設定画面をスクロールさせる魔法の1行です
+
     if (!isScrollable) e.preventDefault();
   }, { passive: false });
 </script>
