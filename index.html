@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0a0a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -24,9 +24,23 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 15px; line-height: 1.6; overflow: hidden; }
+    html {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif; font-size: 15px; line-height: 1.6;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overscroll-behavior: none;
+      touch-action: pan-x pan-y;
+    }
 
-    #app { display: flex; flex-direction: column; height: 100dvh; max-width: 680px; margin: 0 auto; }
+    #app { display: flex; flex-direction: column; height: 100%; max-width: 680px; margin: 0 auto; }
 
     /* ── Header ── */
     header {
@@ -1847,6 +1861,15 @@
     const area = document.getElementById('input-area');
     if (document.activeElement === input && !area.contains(e.target)) input.blur();
   }, { passive: true });
+
+  // キーボード表示時のスクロール防止
+  document.addEventListener('touchmove', function(e) {
+    const messages = document.getElementById('messages');
+    const historyList = document.getElementById('history-list');
+    const memList = document.getElementById('memory-list');
+    const isScrollable = messages.contains(e.target) || historyList.contains(e.target) || (memList && memList.contains(e.target));
+    if (!isScrollable) e.preventDefault();
+  }, { passive: false });
 </script>
 
 
