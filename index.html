@@ -1842,11 +1842,6 @@
     const historyList = document.getElementById('history-list');
     const memList = document.getElementById('memory-list');
     
-   document.addEventListener('touchmove', function(e) {
-    const messages = document.getElementById('messages');
-    const historyList = document.getElementById('history-list');
-    const memList = document.getElementById('memory-list');
-    
     // スクロールを許可する条件
     const isScrollable = 
       (messages && messages.contains(e.target)) || 
