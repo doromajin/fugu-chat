@@ -154,7 +154,15 @@
     .input-pill:focus-within { border-color: #444; }
     .plus-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 300; flex-shrink: 0; margin-right: 6px; transition: color 0.15s; align-self: flex-end; margin-bottom: 1px; }
     .plus-btn:active { color: var(--text); }
-    textarea { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 15px; font-family: inherit; line-height: 1.5; resize: none; max-height: 260px; min-height: 24px; padding: 4px 0; }
+    textarea {
+  flex: 1; background: transparent; border: none; outline: none; color: var(--text);
+  font-size: 16px; /* 💡 iOSの勝手な画面ズームを防ぐため16pxに変更 */
+  font-family: inherit; line-height: 1.5; resize: none; max-height: 260px; min-height: 24px; padding: 4px 0;
+  overflow-y: auto;          /* 💡 縦スクロールを許可 */
+  -webkit-overflow-scrolling: touch; /* 💡 スマホでスルスル動くようにする */
+  user-select: auto;         /* 💡 文字の長押し選択を許可 */
+  -webkit-user-select: auto;
+}
     textarea::placeholder { color: var(--muted); }
     .send-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--accent); color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; font-weight: 700; transition: opacity 0.2s, transform 0.1s; align-self: flex-end; }
     .send-btn:disabled { opacity: 0.25; cursor: not-allowed; }
@@ -1840,7 +1848,7 @@
       (historyList && historyList.contains(e.target)) || 
       (memList && memList.contains(e.target)) ||
       (e.target.closest('.sheet') !== null); // ←コレが設定画面をスクロールさせる魔法の1行です
-
+(e.target.closest('textarea, input') !== null) ||
     if (!isScrollable) e.preventDefault();
   }, { passive: false });
 </script>
