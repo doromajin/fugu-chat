@@ -952,8 +952,12 @@
             <div class="hi-title">${escHtml(c.title)}</div>
             <div class="hi-date">${formatDate(c.updatedAt)}</div>
           </div>
-          <button class="hi-delete" onclick="event.stopPropagation(); deleteChatById('${c.id}')">🗑</button>
         `;
+        const delBtn = document.createElement('button');
+        delBtn.className = 'hi-delete';
+        delBtn.textContent = '🗑';
+        delBtn.addEventListener('click', e => { e.stopPropagation(); deleteChatById(c.id); });
+        item.appendChild(delBtn);
         item.addEventListener('click', () => loadChat(c.id));
         container.appendChild(item);
       });
