@@ -233,15 +233,17 @@
       font-size: 11px; color: var(--muted); margin-top: 1px;
     }
     .history-item .hi-delete {
-      opacity: 0; width: 24px; height: 24px;
-      border-radius: 50%; border: none; background: transparent;
-      color: var(--muted); cursor: pointer; font-size: 14px;
+      opacity: 0; width: 28px; height: 28px;
+      border-radius: 6px; border: none; background: transparent;
+      cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0; transition: opacity 0.15s, background 0.15s;
+      padding: 0;
     }
-    .history-item:hover .hi-delete,
-    .history-item.active .hi-delete { opacity: 1; }
-    .history-item .hi-delete:hover { color: var(--danger); }
+    .history-item .hi-delete { opacity: 1; }
+    .history-item .hi-delete:hover { background: rgba(229,57,53,0.12); }
+    .history-item .hi-delete svg { transition: stroke 0.15s; }
+    .history-item .hi-delete:hover svg { stroke: #ff5252; }
 
     .sidebar-footer {
       padding: 12px 16px;
@@ -567,45 +569,7 @@
     .bubble-img { cursor: zoom-in; }
     .img-thumb img { cursor: zoom-in; }
 
-    /* ── Auth ── */
-    .auth-bar {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 16px; border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .auth-avatar {
-      width: 28px; height: 28px; border-radius: 50%;
-      object-fit: cover; border: 1px solid var(--border);
-    }
-    .auth-name { font-size: 13px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .auth-btn {
-      font-size: 12px; color: var(--muted); background: var(--input-bg);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 4px 10px; cursor: pointer; font-family: inherit;
-      transition: color 0.15s; white-space: nowrap; flex-shrink: 0;
-    }
-    .auth-btn:hover { color: var(--text); }
-    .sync-indicator {
-      font-size: 11px; color: var(--muted); padding: 0 16px 6px;
-      text-align: center;
-    }
-    .sync-indicator.synced { color: #4ade80; }
-    .sync-indicator.syncing { color: var(--accent); }
   </style>
-  <!-- Firebase SDK (動的初期化 - APIキーはlocalStorageから取得) -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
-      from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc }
-      from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-    // expose Firebase functions globally
-    window._fbFns = { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
-      onAuthStateChanged, getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc };
-    window._fbModuleReady = true;
-    window.dispatchEvent(new Event('firebase-module-ready'));
-  </script>
 </head>
 <body>
 <div id="desktop-root">
@@ -623,19 +587,7 @@
       <button class="sidebar-settings-btn" onclick="openSettings();">
         ⚙️ 設定
       </button>
-      <div class="auth-bar" id="auth-bar">
-        <div id="auth-logged-out" style="width:100%">
-          <button class="auth-btn" style="width:100%;padding:8px" onclick="signInGoogle()">
-            Googleでログイン / 同期
-          </button>
-        </div>
-        <div id="auth-logged-in" style="display:none;width:100%;display:none;align-items:center;gap:8px">
-          <img class="auth-avatar" id="auth-avatar" src="" />
-          <span class="auth-name" id="auth-user-name"></span>
-          <button class="auth-btn" onclick="signOutUser()">ログアウト</button>
-        </div>
-      </div>
-      <div class="sync-indicator" id="sync-indicator"></div>
+
     </div>
   </div>
 </div>
@@ -775,23 +727,7 @@
       <label>システムプロンプト（任意）</label>
       <textarea class="sys-input" id="sys-prompt-input" placeholder="あなたは親切なアシスタントです。"></textarea>
     </div>
-    <div class="field">
-      <label>Firebase API Key（同期用・任意）</label>
-      <input type="password" id="fb-api-key-input" placeholder="AIzaSy..." />
-    </div>
-    <div class="field">
-      <label>Firebase Auth Domain</label>
-      <input type="text" id="fb-auth-domain-input" placeholder="your-app.firebaseapp.com" />
-    </div>
-    <div class="field">
-      <label>Firebase Project ID</label>
-      <input type="text" id="fb-project-id-input" placeholder="your-app" />
-    </div>
-    <div class="field">
-      <label>Firebase App ID</label>
-      <input type="text" id="fb-app-id-input" placeholder="1:xxx:web:xxx" />
-      <div class="hint">Firebase Console → プロジェクトの設定 → マイアプリ から取得</div>
-    </div>
+
     <div class="field">
       <label>記憶（メモリ）</label>
       <div class="memory-list" id="memory-list"></div>
@@ -862,13 +798,10 @@
     chats.sort((a, b) => b.updatedAt - a.updatedAt);
     saveAllChats(chats);
     localStorage.setItem('fugu_last_chat_id', currentChatId);
-    // Firebase同期
-    saveToFirebase();
   }
   function deleteChatById(id) {
     const chats = loadAllChats().filter(c => c.id !== id);
     saveAllChats(chats);
-    deleteFromFirebase(id);
     if (id === currentChatId) newChat();
     renderHistoryList();
   }
@@ -959,7 +892,7 @@
         `;
         const delBtn = document.createElement('button');
         delBtn.className = 'hi-delete';
-        delBtn.textContent = '🗑';
+        delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
         delBtn.addEventListener('click', e => { e.stopPropagation(); deleteChatById(c.id); });
         item.appendChild(delBtn);
         item.addEventListener('click', () => loadChat(c.id));
@@ -1052,10 +985,7 @@
     document.getElementById('api-key-input').value = localStorage.getItem('fugu_api_key') || '';
     document.getElementById('base-url-input').value = localStorage.getItem('fugu_base_url') || '';
     document.getElementById('sys-prompt-input').value = localStorage.getItem('fugu_sys_prompt') || '';
-    document.getElementById('fb-api-key-input').value = localStorage.getItem('fb_api_key') || '';
-    document.getElementById('fb-auth-domain-input').value = localStorage.getItem('fb_auth_domain') || '';
-    document.getElementById('fb-project-id-input').value = localStorage.getItem('fb_project_id') || '';
-    document.getElementById('fb-app-id-input').value = localStorage.getItem('fb_app_id') || '';
+
     renderMemoryList();
     document.getElementById('settings-sheet').classList.add('open');
   }
@@ -1066,22 +996,6 @@
     if (key) localStorage.setItem('fugu_api_key', key);
     if (url) localStorage.setItem('fugu_base_url', url);
     localStorage.setItem('fugu_sys_prompt', sys);
-
-    // Firebase設定
-    const fbKey = document.getElementById('fb-api-key-input').value.trim();
-    const fbDomain = document.getElementById('fb-auth-domain-input').value.trim();
-    const fbProject = document.getElementById('fb-project-id-input').value.trim();
-    const fbAppId = document.getElementById('fb-app-id-input').value.trim();
-    if (fbKey) localStorage.setItem('fb_api_key', fbKey);
-    if (fbDomain) localStorage.setItem('fb_auth_domain', fbDomain);
-    if (fbProject) localStorage.setItem('fb_project_id', fbProject);
-    if (fbAppId) localStorage.setItem('fb_app_id', fbAppId);
-
-    // Firebase未初期化なら初期化を試みる
-    if (!firebaseReady && fbKey && fbProject) initFirebase();
-
-    // Firebaseに設定を即時保存
-    if (firebaseReady && currentUser) saveToFirebase();
 
     closeSheet('settings-sheet');
     updateSendBtn();
@@ -1361,10 +1275,6 @@
     if (mems.length > 50) mems.pop();
     saveMemories(mems);
     showMemoryToast();
-    // Firebase同期
-    if (currentUser && firebaseReady && !isIncognito) {
-      window._fbSetDoc(window._fbDoc(window._fbDb, 'users', currentUser.uid, 'data', 'memories'), { list: mems }).catch(()=>{});
-    }
   }
   function deleteMemory(idx) {
     const mems = loadMemories();
@@ -1678,200 +1588,6 @@
       }
     }
   });
-
-  // ── Firebase Auth & Sync ──
-  let currentUser = null;
-  let firebaseReady = false;
-
-  function initFirebase() {
-    if (!window._fbModuleReady) {
-      window.addEventListener('firebase-module-ready', initFirebase, { once: true });
-      return;
-    }
-    const cfg = getFirebaseConfig();
-    if (!cfg) return; // APIキー未設定
-
-    try {
-      const app = window._fbFns.initializeApp(cfg, 'fugu-chat');
-      const auth = window._fbFns.getAuth(app);
-      const db = window._fbFns.getFirestore(app);
-
-      window._fbAuth = auth;
-      window._fbDb = db;
-      window._fbGoogleProvider = new window._fbFns.GoogleAuthProvider();
-      window._fbSignInWithRedirect = window._fbFns.signInWithRedirect;
-      window._fbGetRedirectResult = window._fbFns.getRedirectResult;
-      window._fbSignOut = window._fbFns.signOut;
-      window._fbOnAuthStateChanged = window._fbFns.onAuthStateChanged;
-      window._fbDoc = window._fbFns.doc;
-      window._fbSetDoc = window._fbFns.setDoc;
-      window._fbGetDoc = window._fbFns.getDoc;
-      window._fbCollection = window._fbFns.collection;
-      window._fbGetDocs = window._fbFns.getDocs;
-      window._fbDeleteDoc = window._fbFns.deleteDoc;
-      firebaseReady = true;
-
-      // リダイレクト認証の結果を処理
-      window._fbFns.getRedirectResult(auth).then(result => {
-        if (result?.user) {
-          currentUser = result.user;
-          updateAuthUI(result.user);
-          setSyncStatus('syncing', '同期中...');
-          syncFromFirebase().then(() => {
-            setSyncStatus('synced', '✓ 同期済み');
-            setTimeout(() => setSyncStatus('', ''), 3000);
-          });
-        }
-      }).catch(e => console.error('Redirect result error:', e));
-
-      window._fbFns.onAuthStateChanged(auth, async (user) => {
-        currentUser = user;
-        updateAuthUI(user);
-        if (user) {
-          setSyncStatus('syncing', '同期中...');
-          await syncFromFirebase();
-          setSyncStatus('synced', '✓ 同期済み');
-          setTimeout(() => setSyncStatus('', ''), 3000);
-        }
-      });
-    } catch(e) {
-      console.error('Firebase init failed:', e);
-      setSyncStatus('', 'Firebase設定エラー');
-    }
-  }
-
-  function getFirebaseConfig() {
-    const apiKey = localStorage.getItem('fb_api_key');
-    const authDomain = localStorage.getItem('fb_auth_domain');
-    const projectId = localStorage.getItem('fb_project_id');
-    const appId = localStorage.getItem('fb_app_id');
-    if (!apiKey || !projectId) return null;
-    return { apiKey, authDomain, projectId, appId,
-      storageBucket: localStorage.getItem('fb_storage_bucket') || '',
-      messagingSenderId: localStorage.getItem('fb_messaging_sender_id') || '' };
-  }
-
-  initFirebase();
-
-  function updateAuthUI(user) {
-    const loggedOut = document.getElementById('auth-logged-out');
-    const loggedIn = document.getElementById('auth-logged-in');
-    if (user) {
-      loggedOut.style.display = 'none';
-      loggedIn.style.display = 'flex';
-      loggedIn.style.alignItems = 'center';
-      loggedIn.style.gap = '8px';
-      const avatar = document.getElementById('auth-avatar');
-      const name = document.getElementById('auth-user-name');
-      if (avatar) avatar.src = user.photoURL || '';
-      if (name) name.textContent = user.displayName || user.email;
-    } else {
-      loggedOut.style.display = 'block';
-      loggedIn.style.display = 'none';
-    }
-  }
-
-  function setSyncStatus(type, text) {
-    const el = document.getElementById('sync-indicator');
-    el.textContent = text;
-    el.className = 'sync-indicator' + (type ? ' ' + type : '');
-  }
-
-  async function signInGoogle() {
-    if (!firebaseReady) return;
-    try {
-      setSyncStatus('syncing', 'Googleへリダイレクト中...');
-      await window._fbSignInWithRedirect(window._fbAuth, window._fbGoogleProvider);
-    } catch(e) {
-      console.error('Login failed', e);
-      setSyncStatus('', 'ログインに失敗しました');
-    }
-  }
-
-  async function signOutUser() {
-    if (!firebaseReady) return;
-    await window._fbSignOut(window._fbAuth);
-    currentUser = null;
-    updateAuthUI(null);
-  }
-
-  // Firebaseからデータを読み込む
-  async function syncFromFirebase() {
-    if (!currentUser || !firebaseReady) return;
-    const uid = currentUser.uid;
-    const db = window._fbDb;
-    const doc = window._fbDoc;
-    const getDoc = window._fbGetDoc;
-    const collection = window._fbCollection;
-    const getDocs = window._fbGetDocs;
-
-    try {
-      // memories
-      const memDoc = await getDoc(doc(db, 'users', uid, 'data', 'memories'));
-      if (memDoc.exists()) {
-        localStorage.setItem('fugu_memories', JSON.stringify(memDoc.data().list || []));
-      }
-
-      // chats
-      const chatsSnap = await getDocs(collection(db, 'users', uid, 'chats'));
-      const chats = [];
-      chatsSnap.forEach(d => chats.push(d.data()));
-      if (chats.length > 0) {
-        chats.sort((a, b) => b.updatedAt - a.updatedAt);
-        saveAllChats(chats);
-        // reload current chat
-        const lastId = localStorage.getItem('fugu_last_chat_id');
-        const found = chats.find(c => c.id === lastId) || chats[0];
-        if (found) {
-          currentChatId = found.id;
-          messages = found.messages;
-          if (found.model) { model = found.model; document.getElementById('hdr-model-name').textContent = model === 'fugu-ultra' ? 'Fugu Ultra' : 'Fugu'; }
-          rerenderMessages();
-        }
-        renderHistoryList();
-      }
-    } catch(e) { console.error('Sync from Firebase failed', e); }
-  }
-
-  // Firestoreにチャットを保存
-  async function saveToFirebase() {
-    if (!currentUser || !firebaseReady || isIncognito) return;
-    const uid = currentUser.uid;
-    const db = window._fbDb;
-    const doc = window._fbDoc;
-    const setDoc = window._fbSetDoc;
-    try {
-      const chats = loadAllChats();
-      const chat = chats.find(c => c.id === currentChatId);
-      if (chat) {
-        // 画像データは容量が大きいのでFirestoreには送らない（テキストのみ）
-        const chatToSave = {
-          ...chat,
-          messages: chat.messages.map(m => {
-            if (typeof m.content === 'string') return m;
-            // 画像URLをテキストのみに変換
-            const textContent = m.content.find(b => b.type === 'text');
-            return { role: m.role, content: textContent ? textContent.text : '[画像]' };
-          })
-        };
-        await setDoc(doc(db, 'users', uid, 'chats', currentChatId), chatToSave);
-      }
-      // memories
-      const mems = loadMemories();
-      await setDoc(doc(db, 'users', uid, 'data', 'memories'), { list: mems });
-
-
-    } catch(e) { console.error('Save to Firebase failed', e); }
-  }
-
-  // Firestoreからチャットを削除
-  async function deleteFromFirebase(chatId) {
-    if (!currentUser || !firebaseReady) return;
-    const uid = currentUser.uid;
-    try {
-      await window._fbDeleteDoc(window._fbDoc(window._fbDb, 'users', uid, 'chats', chatId));
-    } catch(e) { console.error('Delete from Firebase failed', e); }
-  }
 
   // ── Init ──
   // リロード時: 最後に開いていたチャットを復元
