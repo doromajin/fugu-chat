@@ -569,6 +569,88 @@
     .bubble-img { cursor: zoom-in; }
     .img-thumb img { cursor: zoom-in; }
 
+
+    /* ── Paste preview ── */
+    .paste-preview {
+      display: none;
+      margin: 0 4px 6px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .paste-preview.visible { display: block; }
+    .paste-preview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px;
+      background: #222;
+      cursor: pointer;
+      user-select: none;
+    }
+    .paste-preview-label {
+      font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px;
+    }
+    .paste-preview-label svg { flex-shrink: 0; }
+    .paste-preview-chars { font-size: 11px; color: #555; }
+    .paste-preview-close {
+      border: none; background: transparent; color: var(--muted);
+      cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1;
+    }
+    .paste-preview-text {
+      padding: 8px 12px;
+      font-size: 12px; color: var(--muted); line-height: 1.5;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-height: 60px; overflow-y: hidden;
+      display: none;
+    }
+    .paste-preview.expanded .paste-preview-text {
+      white-space: pre-wrap; max-height: 200px; overflow-y: auto; display: block;
+    }
+    .paste-preview:not(.expanded) .paste-preview-text { display: block; }
+
+    /* ── Code blocks in AI response ── */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      margin: 8px 0;
+      overflow: hidden;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+    .code-block-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+    }
+    .code-block-lang {
+      font-size: 12px; color: #8b949e; font-family: inherit;
+    }
+    .code-block-copy {
+      display: flex; align-items: center; gap: 6px;
+      border: none; background: transparent; color: #8b949e;
+      cursor: pointer; font-size: 12px; font-family: 'Inter', sans-serif;
+      padding: 4px 8px; border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .code-block-copy:hover { color: #e6edf3; background: rgba(255,255,255,0.08); }
+    .code-block-copy.copied { color: #4ade80; }
+    .code-block pre {
+      padding: 14px;
+      overflow-x: auto;
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #e6edf3;
+      white-space: pre;
+    }
+    /* simple syntax colors */
+    .tok-keyword { color: #ff7b72; }
+    .tok-string  { color: #a5d6ff; }
+    .tok-comment { color: #8b949e; font-style: italic; }
+    .tok-number  { color: #79c0ff; }
+    .tok-func    { color: #d2a8ff; }
   </style>
 </head>
 <body>
@@ -665,6 +747,14 @@
   </div>
 
   <div id="input-area">
+    <div class="paste-preview" id="paste-preview">
+      <div class="paste-preview-header" onclick="togglePastePreview()">
+        <span class="paste-preview-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="paste-preview-label-text">貼り付けたテキスト</span></span>
+        <span class="paste-preview-chars" id="paste-preview-chars"></span>
+        <button class="paste-preview-close" onclick="event.stopPropagation(); clearPastePreview()">✕</button>
+      </div>
+      <div class="paste-preview-text" id="paste-preview-text"></div>
+    </div>
     <div class="quote-preview" id="quote-preview"><span class="qp-text" id="quote-text"></span><button class="qp-close" onclick="clearQuote()">✕</button></div>
     <div class="img-preview-bar" id="img-preview-bar"></div>
     <div class="input-pill">
@@ -1028,7 +1118,7 @@
   function updateSendBtn() {
     const val = document.getElementById('user-input').value.trim();
     const hasKey = !!localStorage.getItem('fugu_api_key');
-    document.getElementById('send-btn').disabled = (!val && pendingImages.length === 0 && !quotedText) || !hasKey || isLoading;
+    document.getElementById('send-btn').disabled = (!val && pendingImages.length === 0 && !quotedText && !pastedText) || !hasKey || isLoading;
   }
   function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1131,7 +1221,8 @@
     const div = document.createElement('div'); div.className = 'msg ai'; if (!animate) div.style.animation = 'none';
     const name = document.createElement('div'); name.className = 'ai-name';
     name.innerHTML = modelUsed === 'fugu-ultra' ? '⚡ Fugu Ultra' : `<svg width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 24 C10 14 18 8 28 10 C36 12 40 18 40 24 C40 30 36 36 28 38 C18 40 10 34 10 24Z" stroke="#e53935" stroke-width="3" stroke-linejoin="round" fill="none"/><path d="M10 24 L2 16" stroke="#e53935" stroke-width="3" stroke-linecap="round"/><path d="M10 24 L2 32" stroke="#e53935" stroke-width="3" stroke-linecap="round"/><path d="M22 13 L16 35" stroke="#e53935" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="21" r="2.5" stroke="#e53935" stroke-width="2" fill="none"/></svg>`;
-    const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
+    const bubble = document.createElement('div'); bubble.className = 'bubble';
+    renderAIContent(bubble, text);
 
     // meta bar
     const meta = document.createElement('div'); meta.className = 'msg-meta';
@@ -1173,6 +1264,60 @@
 
   }
 
+  // ── AI content renderer (markdown-lite with code blocks) ──
+  const COPY_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+
+  function renderAIContent(container, text) {
+    // Split by code blocks
+    const parts = text.split(/(```[\s\S]*?```)/g);
+    parts.forEach(part => {
+      if (part.startsWith('```')) {
+        // Code block
+        const lines = part.slice(3, -3).split('\n');
+        const lang = lines[0].trim() || 'code';
+        const code = lines.slice(1).join('\n').trimEnd();
+
+        const block = document.createElement('div');
+        block.className = 'code-block';
+
+        const header = document.createElement('div');
+        header.className = 'code-block-header';
+
+        const langSpan = document.createElement('span');
+        langSpan.className = 'code-block-lang';
+        langSpan.textContent = lang;
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'code-block-copy';
+        copyBtn.innerHTML = COPY_SVG + ' コピー';
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(code).then(() => {
+            copyBtn.classList.add('copied');
+            copyBtn.innerHTML = COPY_SVG + ' コピー済み';
+            setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.innerHTML = COPY_SVG + ' コピー'; }, 1500);
+          });
+        };
+
+        header.appendChild(langSpan);
+        header.appendChild(copyBtn);
+
+        const pre = document.createElement('pre');
+        pre.textContent = code;
+
+        block.appendChild(header);
+        block.appendChild(pre);
+        container.appendChild(block);
+      } else if (part.trim()) {
+        // Regular text
+        const p = document.createElement('span');
+        p.style.whiteSpace = 'pre-wrap';
+        p.style.display = 'block';
+        p.textContent = part;
+        container.appendChild(p);
+      }
+    });
+  }
+
   // ── Message actions ──
   function copyText(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
@@ -1211,6 +1356,7 @@
   }
 
   function retrySend(div) {
+    if (isLoading) return; // 既に送信中なら無視
     // Find last user message and resend
     const lastUser = [...messages].reverse().find(m => m.role === 'user');
     if (!lastUser) return;
@@ -1361,18 +1507,72 @@
       .trim();
   }
 
+  // ── Paste preview ──
+  let pastedText = '';
+
+  function togglePastePreview() {
+    document.getElementById('paste-preview').classList.toggle('expanded');
+  }
+  function clearPastePreview() {
+    pastedText = '';
+    document.getElementById('paste-preview').classList.remove('visible', 'expanded');
+    updateSendBtn();
+  }
+
+  // Override paste handler to show preview for long text
+  document.addEventListener('paste', (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // Check for image first
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const dataUrl = ev.target.result;
+          pendingImages.push({ id: Date.now() + Math.random(), base64: dataUrl.split(',')[1], mimeType: file.type, previewUrl: dataUrl });
+          renderImagePreviews(); updateSendBtn();
+        };
+        reader.readAsDataURL(file);
+        return; // image handled
+      }
+    }
+
+    // Check for long text (>200 chars) → show as preview
+    const textItem = Array.from(items).find(i => i.type === 'text/plain');
+    if (textItem) {
+      textItem.getAsString(text => {
+        if (text.length > 200) {
+          e.preventDefault(); // prevent pasting into textarea
+          pastedText = text;
+          document.getElementById('paste-preview-label-text').textContent = '貼り付けたテキスト';
+          document.getElementById('paste-preview-chars').textContent = `${text.length}文字`;
+          document.getElementById('paste-preview-text').textContent = text;
+          document.getElementById('paste-preview').classList.add('visible');
+          document.getElementById('paste-preview').classList.remove('expanded');
+          updateSendBtn();
+        }
+        // short text: let it paste normally into textarea
+      });
+    }
+  }, true); // capture phase to intercept before textarea
+
   // ── Send ──
   async function sendMessage() {
     const input = document.getElementById('user-input');
     const text = input.value.trim();
-    if ((!text && pendingImages.length === 0) || isLoading) return;
+    if ((!text && pendingImages.length === 0 && !quotedText && !pastedText) || isLoading) return;
 
     const apiKey = localStorage.getItem('fugu_api_key');
     const baseUrl = (localStorage.getItem('fugu_base_url') || 'https://api.sakana.ai/v1').replace(/\/$/, '');
     const sysPrompt = localStorage.getItem('fugu_sys_prompt') || '';
 
-    // 引用テキストがあれば先頭に付加
-    const fullText = quotedText ? `> ${quotedText}\n\n${text}` : text;
+    // 引用テキスト・ペーストテキストを合成
+    let fullText = text;
+    if (quotedText) fullText = `> ${quotedText}\n\n${fullText}`;
+    if (pastedText) fullText = fullText ? `${fullText}\n\n${pastedText}` : pastedText;
 
     const snapImages = [...pendingImages];
     let userContent;
@@ -1388,7 +1588,7 @@
     input.value = ''; input.style.height = 'auto';
     input.blur(); // キーボードを閉じる
     pendingImages = []; renderImagePreviews();
-    clearQuote(); updateSendBtn();
+    clearQuote(); clearPastePreview(); updateSendBtn();
 
     isLoading = true; updateSendBtn(); appendTyping();
 
@@ -1418,24 +1618,11 @@
       if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err?.error?.message || `HTTP ${res.status}`); }
       const data = await res.json();
       const reply = data.choices?.[0]?.message?.content || '（応答なし）';
-      window._sendRetryCount = 0;
       messages.push({ role: 'assistant', content: reply });
       removeTyping(); appendAIBubble(reply, model);
       saveCurrentChat();
     } catch (e) {
       removeTyping();
-      // ネットワークエラーの場合は自動リトライ（最大2回）
-      if ((e.message === 'Failed to fetch' || e.message === 'Load failed') && (window._sendRetryCount || 0) < 2) {
-        window._sendRetryCount = (window._sendRetryCount || 0) + 1;
-        messages.pop();
-        appendError(`接続エラー。自動リトライ中 (${window._sendRetryCount}/2)...`);
-        setTimeout(() => {
-          document.querySelectorAll('.error-msg').forEach(el => el.remove());
-          resendLastUserMessage();
-        }, 2000);
-        return;
-      }
-      window._sendRetryCount = 0;
       messages.pop();
       appendError(e.message);
     } finally {
