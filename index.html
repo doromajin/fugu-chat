@@ -1462,6 +1462,7 @@
     appendUserBubble(fullText, snapImages);
 
     input.value = ''; input.style.height = 'auto';
+    input.blur(); // キーボードを閉じる
     pendingImages = []; renderImagePreviews();
     clearQuote(); updateSendBtn();
 
